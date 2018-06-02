@@ -1,0 +1,47 @@
+language: cpp
+sudo: false
+dist: trusty
+
+addons:
+  apt:
+    packages:
+      - ninja-build
+
+env:
+  - VULKAN_VERSION=1.1.73.0
+
+script:
+  # Vulkan SDK
+  - ./vulkansdk-linux-x86_64-$VULKAN_VERSION.run --target vulkansdk || exit 1
+
+  # Shaderc
+  - git clone https://github.com/google/shaderc shaderc_src || exit 1
+  - cd shaderc_src/third_party || exit 1
+  - git clone https://github.com/google/glslang.git || exit 1
+  - git clone https://github.com/KhronosGroup/SPIRV-Tools.git spirv-tools || exit 1
+  - git clone https://github.com/KhronosGroup/SPIRV-Headers.git spirv-headers || exit 1
+  - cd .. && mkdir build && cd build || exit 1
+  - export SHADERC_PREFIX=$TRAVIS_BUILD_DIR/shaderc
+  - cmake
+    -GNinja
+    -DCMAKE_BUILD_TYPE=Release
+    -DSHADERC_SKIP_TESTS=ON
+    -DCMAKE_INSTALL_PREFIX=$SHADERC_PREFIX
+    ..
+    || exit 1
+  - ninja -j 4 || exit 1
+  - ninja install || exit 1
+
+  - cd $TRAVIS_BUILD_DIR || exit 1
+  - tar -czf lavos-ci-deps-linux-x86_64.tar.gz
+    vulkansdk
+    shaderc
+
+deploy:
+  provider: releases
+  api_key:
+    secure: PsHKOPlaBp7qcN/mHBHLnaTxPVRENV43/yoaoVatf7pCDm5l649tZlknZjCKxqF4YSWxM7Rm67mF8fliR7Mqo/OUwhRiz7hEtoWntPaNlCkJWJIyQObzimwJQr7oQwGyFdAMKDDuNOU4y5ETpOGExRBthbwTXZy2E3uVi0UlNzhAT6c5imf7ehHXzTLoVUyQ+zUNbldVRPqygdPq58peSPEUxq0vtR4rjCCeOHbTJGmMP0tOFHurtynam1QtmAt77Z+eEFZ0LUwuS06DAZGn17OVrp1WuQ4u212iWwLNdEeDWFVWivX8OwApx+ctDZpuCvNCjBxpVnIfFhtGrWHwZX51mxQh5tmRQYxUbk9PqQh7R6NSV16lrygpOT4KZaqEyZgzoDjKUQ0MbgZMcbbUJT8FGxfukQUR/lsEdq4ER7TqMhS3FJTdOSgr+1gXry9dTdz/vMq83xc1xS1TuPxQu6DPkUPPc+w+wD3isYHpQR8CWrE2fYWmYn9K9mGXlXy7XZJ2jsMfjTECwYS2LqjIOv3Z7Pv279b9D6j6htmcTumD+cwvj1wNl5AsWyy7yOu2/SPNntRGNrIQL4LRoiybLXUmYO0OXQezEROQGwd0SkxGIBYI9ATe2aXn6svHQo1WjhPyIvYnGlZRZNO2104ocf+Q8wzF8/NxzfTw8wNTHro=
+  file: lavos-ci-deps-linux-x86_64.tar.gz
+  skip_cleanup: true
+  on:
+    tags: true
