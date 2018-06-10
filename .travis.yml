@@ -31,11 +31,15 @@ script:
     || exit 1
   - ninja -j 4 || exit 1
   - ninja install || exit 1
-
   - cd $TRAVIS_BUILD_DIR || exit 1
+
+  # PCL
+  - tar -xvf pcl-cf5667d.tar.gz
+
   - tar -czf lavos-ci-deps-linux-x86_64.tar.gz
     vulkansdk
     shaderc
+    pcl
 
 deploy:
   provider: releases
